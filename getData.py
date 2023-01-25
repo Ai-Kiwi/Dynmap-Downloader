@@ -4,6 +4,7 @@ import threading
 from PIL import Image
 from colorama import Fore, Back, Style
 import shutil
+import math
 
 #images are 128x128
 ChunkImageWidth = 128
@@ -22,6 +23,7 @@ MapXChunkEnd = 10
 MapYChunkEnd = 10
 DeleteFolderOnFinish = True
 SkipDownload = False
+DontRedownloadCache = True
 RetryDownloadAttempts = 3
 OutputName = "map"
 
@@ -45,6 +47,8 @@ if True:
     print("")
     print(Fore.GREEN + Style.BRIGHT + "Ai Kiwi Dynamap downloader" + Style.RESET_ALL)
     print("If it gets stuck please just restart it. Thats my moto")
+    print(Fore.RED + "DANGER THIS PROGRAM IS A USE AT YOUR OWN RISK" + Style.RESET_ALL)
+    print(Fore.RED + "WE CANNOT GRATUNE IT WILL NOT SEND SO MUCH DATA IT CUTS YOUR INTERNET" + Style.RESET_ALL)
     print("")
 
     ServerIP = GetInput("server IP? (default nothing) (make sure to remove http part just raw ip) : ", "", False)
@@ -54,21 +58,25 @@ if True:
     MapYChunk = int(GetInput("Chunk y (default -10) : ", "-10", False))
     MapXChunkEnd = int(GetInput("End chunk x (default 10) : ", "10", False))
     MapYChunkEnd = int(GetInput("End chunk y (default 10) : ", "10", False))
-    SkipDownload = bool(GetInput("Only use cache (default no) : ", False, True))
-    DeleteFolderOnFinish = bool(GetInput("Clear cache on end (default yes) : ", False, True))
+    #SkipDownload = bool(GetInput("Only use cache (default no) : ", False, True))
+    DontRedownloadCache = not bool(GetInput("Skip cache (default no) : ", False, True)) 
+    DeleteFolderOnFinish = bool(GetInput("Clear cache on end (default no) : ", False, True))
     RetryDownloadAttempts = int(GetInput("Retry times (default 3) : ", 3, False))
     OutputName = GetInput("Output map name (default map) : ", "map", False)
 
 
 #function to download a chunk
-def DownloadChunk(Url,SaveLoc,AttemptNum):
+def DownloadChunk(Url,SaveLoc,AttemptNum,UseCache):
 
-
+    if UseCache:
+        if os.path.isfile(SaveLoc):
+            print(Fore.GREEN + "Using cache for : " + SaveLoc + Style.RESET_ALL)
+            return
     try:
         urllib.request.urlretrieve(Url, SaveLoc)
     except Exception:
         if AttemptNum <= RetryDownloadAttempts:
-            DownloadChunk(Url,SaveLoc,AttemptNum+1)
+            DownloadChunk(Url,SaveLoc,AttemptNum+1,UseCache)
         print(Fore.RED+"failed to get data ("+str(AttemptNum)+"x) : " + Url + Style.RESET_ALL)
 
     print(Fore.GREEN+"got data ("+str(AttemptNum)+"x) : " + Url + Style.RESET_ALL)
@@ -93,7 +101,7 @@ if SkipDownload == False:
             SaveLoc = WorkSpacePath+"\\"+CreateFolder + "\\" + str(chunkX) + "_" + str(chunkY) + ".jpg"
 
             #create thread
-            Thread = threading.Thread(target=DownloadChunk, args=(Url,SaveLoc,1))
+            Thread = threading.Thread(target=DownloadChunk, args=(Url,SaveLoc,1,DontRedownloadCache))
             Thread.start()
             threads.append(Thread)
 
@@ -119,10 +127,17 @@ for chunkX in range(MapXChunk, MapXChunkEnd):
             Loc = WorkSpacePath+"\\"+CreateFolder + "\\" + str(chunkX) + "_" + str(chunkY) + ".jpg"
             downlaodedImage = Image.open(Loc)
             img.paste(downlaodedImage, (img.size[0]-((MapXChunkEnd-chunkX)*ChunkImageWidth),((MapYChunkEnd-chunkY)*ChunkImageHeight)-ChunkImageHeight))
-            print(Fore.GREEN+"Edited in : "+WorkSpacePath+"\\"+CreateFolder + "\\" + str(chunkX) + "_" + str(chunkY) + ".jpg" + Style.RESET_ALL)
-        except Exception:
-            print(Fore.RED+"Failed to edit in : "+WorkSpacePath+"\\"+CreateFolder + "\\" + str(chunkX) + "_" + str(chunkY) + ".jpg" + Style.RESET_ALL) 
+            #print(Fore.GREEN+"Edited in : "+WorkSpacePath+"\\"+CreateFolder + "\\" + str(chunkX) + "_" + str(chunkY) + ".jpg" + Style.RESET_ALL)
             
+            print(str(math.ceil(((((MapYChunkEnd-MapYChunk)*(chunkX-MapXChunk))+(chunkY-MapYChunk))/((MapXChunk-MapXChunkEnd)*(MapYChunk-MapYChunkEnd)))*100)),end="%\r")
+            
+            
+        except Exception:
+            print("")
+            print(Fore.RED+"Failed to edit in : "+WorkSpacePath+"\\"+CreateFolder + "\\" + str(chunkX) + "_" + str(chunkY) + ".jpg" + Style.RESET_ALL)
+            
+
+print("")
 print("all finished!")
 img.show()
 img.save(WorkSpacePath+"\\" + OutputName + ".jpg")
