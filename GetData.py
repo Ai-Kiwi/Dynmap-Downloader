@@ -12,10 +12,6 @@ ChunkImageHeight = 128
 WorkSpacePath = os.path.dirname(os.path.realpath(__file__))
 CreateFolder = "DynmapDownloaderCache"
 
-
-#ADD REQUIMENTS THING FRIST THAT PYTHON SUPPORTS
-#THEN AFTER THAT UPLOAD TO GITHUB
-
 #user values
 world = ""
 viewMode = ""
